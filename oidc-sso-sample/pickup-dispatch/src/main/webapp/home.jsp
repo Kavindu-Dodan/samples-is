@@ -28,6 +28,8 @@
 <%@ page import="java.util.Map" %>
 <%@ page import="java.util.logging.Logger" %>
 <%@ page import="java.util.logging.Level" %>
+<%@ page import="java.util.Optional"%>
+<%@ page import="org.wso2.sample.identity.oauth2.TokenData"%>
 
 <%
     Logger logger = Logger.getLogger(getClass().getName());
@@ -55,10 +57,12 @@
     String sessionState = null;
     JSONObject requestObject = null;
     JSONObject responseObject = null;
+    
+    Optional<TokenData> tokenData = Optional.empty();
 
     try {
         sessionState = request.getParameter(OAuth2Constants.SESSION_STATE);
-        CommonUtils.getToken(request, response);
+        tokenData = CommonUtils.getToken(request, response);
         if (currentSession == null || currentSession.getAttribute("authenticated") == null) {
             currentSession.invalidate();
             response.sendRedirect("index.jsp");
@@ -82,7 +86,13 @@
         }
     }
 
-
+    // Set access token to localStorage
+    String accessToken = "";
+    if(tokenData.isPresent()){
+        accessToken = tokenData.get().getAccessToken();
+    }else{
+        System.out.println("WARNING : Access token not found");
+    }
 %>
 <html lang="en">
 <head>
@@ -166,7 +176,7 @@
                                                 class="fas fa-edit"></i> &nbsp;Make a Booking</a>
                                         <a class="nav-item nav-link" id="nav-drivers-tab" data-toggle="tab"
                                            href="#nav-drivers"
-                                           role="tab" aria-controls="nav-drivers" aria-selected="false"><i
+                                           role="tab" aria-controls="nav-drivers" aria-selected="false" onclick="fetch_bookings()"><i
                                                 class="fas fa-list"></i> &nbsp;View Bookings</a>
                                     </div>
                                 </div>
@@ -175,7 +185,7 @@
                                 <div class="tab-pane fade show active" id="nav-overview" role="tabpanel"
                                      aria-labelledby="nav-overview-tab">
                                     <div class="row">
-                                        <div class="col-md-8 mb-5 mt-5 d-block mx-auto">
+                                        <div class="col-md-6 mb-5 mt-5 d-block mx-auto">
                                             <form>
                                                 <div class="form-group">
                                                     <label for="drivers" class="bmd-label-floating">Driver</label>
@@ -190,39 +200,17 @@
                                                     </select>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="vehicles" class="bmd-label-floating">Vehicle</label>
-                                                    <select class="form-control" id="vehicles">
-                                                        <option selected>Select a vehicle</option>
-                                                        <option>CAS 234 (Car)</option>
-                                                        <option>KNW 456 (Van)</option>
-                                                        <option>JDQ 887 (Car)</option>
-                                                        <option>HGY 423 (Car)</option>
-                                                        <option>SAH 555 (Van)</option>
-                                                    </select>
+                                                    <label for="passenger" class="bmd-label-floating">Passenger</label>
+                                                    <input type="text" class="form-control" id="passengerName">
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="passesnger"
-                                                           class="bmd-label-floating">Passesnger</label>
-                                                    <select class="form-control" id="passesnger">
-                                                        <option selected>Select a passesnger</option>
-                                                        <option>James Easton (P0064)</option>
-                                                        <option>Ryan Martin (P0052)</option>
-                                                        <option>Zofia Cox (P0048)</option>
-                                                        <option>Kelly Carter (P0037)</option>
-                                                        <option>Xing Wu (P0022)</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="date" class="bmd-label-floating">Date and Time</label>
-                                                    <div class="form-inline">
-                                                        <input type="date" class="form-control" id="date">
-                                                        <input type="time" class="form-control" id="time">
-                                                    </div>
+                                                    <label for="contactNumber" class="bmd-label-floating">Contact Number</label>
+                                                    <input type="text" class="form-control" id="contactNumber">
                                                 </div>
                                                 <div class="form-group mt-5">
                                                     <button type="button"
                                                             class="btn btn-outline-primary btn-create content-btn mt-4 d-block mx-auto"
-                                                            data-toggle="modal" data-target="#sampleModal">Add
+                                                            onclick="add_data()">Add
                                                     </button>
                                                 </div>
                                             </form>
@@ -232,53 +220,16 @@
                                 <div class="tab-pane fade" id="nav-drivers" role="tabpanel"
                                      aria-labelledby="nav-drivers-tab">
                                     <div class="table-responsive content-table">
-                                        <table class="table">
+                                        <table class="table" id = "bookingTab">
                                             <thead>
                                             <tr>
+                                                <th>Ref-id</th>
                                                 <th>Driver</th>
-                                                <th></th>
-                                                <th>Vehicle</th>
-                                                <th></th>
-                                                <th>Passesnger</th>
-                                                <th></th>
-                                                <th>Date and Time</th>
-                                                <th></th>
+                                                <th>Client</th>
+                                                <th>Client phone</th>
                                             </tr>
                                             </thead>
                                             <tbody>
-                                            <tr>
-                                                <td>Tiger Nixon</td>
-                                                <td>D0072</td>
-                                                <td>CAS 234</td>
-                                                <td>Car</td>
-                                                <td>Zofia Cox</td>
-                                                <td>P0048</td>
-                                                <td class="date-time"></td>
-                                                <td><a href="#" data-toggle="modal" data-target="#sampleModal"><i
-                                                        class="fas fa-trash-alt"></i></a></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Lucas Thiyago</td>
-                                                <td>D0046</td>
-                                                <td>KNW 456</td>
-                                                <td>Van</td>
-                                                <td>Xing Wu</td>
-                                                <td>P0022</td>
-                                                <td class="date-time"></td>
-                                                <td><a href="#" data-toggle="modal" data-target="#sampleModal"><i
-                                                        class="fas fa-trash-alt"></i></a></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Woo Jin</td>
-                                                <td>D0027</td>
-                                                <td>HGY 423</td>
-                                                <td>Car</td>
-                                                <td>Mariana Davis</td>
-                                                <td>P0015</td>
-                                                <td class="date-time"></td>
-                                                <td><a href="#" data-toggle="modal" data-target="#sampleModal"><i
-                                                        class="fas fa-trash-alt"></i></a></td>
-                                            </tr>
                                             </tbody>
                                         </table>
                                     </div>
@@ -457,10 +408,16 @@
 <script src="libs/highlight_9.12.0/highlight.pack.js"></script>
 <!-- Clipboard -->
 <script src="libs/clipboard/clipboard.min.js"></script>
+<!-- SweetAlerts -->
+<script src="libs/sweetalerts/sweetalert.2.1.2.min.js"></script>
 <!-- Custom Js -->
 <script src="js/custom.js"></script>
 <iframe id="rpIFrame" src="rpIFrame.jsp" frameborder="0" width="0" height="0"></iframe>
-<script>hljs.initHighlightingOnLoad();</script>
+<script>
+    localStorage.setItem('ACCESS_TOKEN','${accessToken}');
+    localStorage.setItem('API_ENDPOINT', "<% out.print(CommonUtils.getApiEndpoint()); %>");
+    hljs.initHighlightingOnLoad();
+</script>
 
 </body>
 </html>

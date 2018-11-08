@@ -18,11 +18,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-public  class CommonUtils {
+public class CommonUtils {
     private static Logger LOGGER = Logger.getLogger("org.wso2.sample.identity.oauth2.CommonUtils");
     private static Map<String, TokenData> tokenStore = new HashMap<>();
 
@@ -59,36 +60,36 @@ public  class CommonUtils {
         return false;
     }
 
-    public static void getToken(HttpServletRequest request, HttpServletResponse response) throws ClientAppException,
+    public static Optional<TokenData> getToken(HttpServletRequest request, HttpServletResponse response) throws ClientAppException,
             OAuthProblemException, OAuthSystemException {
 
         Cookie appIdCookie = getAppIdCookie(request);
         HttpSession session = request.getSession(false);
-        TokenData storedTokenData;;
+        TokenData storedTokenData;
         String accessToken;
         Properties properties = SampleContextEventListener.getProperties();
         if (appIdCookie != null) {
             storedTokenData = tokenStore.get(appIdCookie.getValue());
             if (storedTokenData != null) {
                 setTokenDataToSession(session, storedTokenData);
-                return;
+                return Optional.of(storedTokenData);
             }
         }
 
         String authzCode = request.getParameter("code");
         if (authzCode == null) {
-            return;
+            return Optional.empty();
         }
         OAuthClientRequest.TokenRequestBuilder oAuthTokenRequestBuilder =
                 new OAuthClientRequest.TokenRequestBuilder(properties.getProperty("tokenEndpoint"));
 
 
         OAuthClientRequest accessRequest = oAuthTokenRequestBuilder.setGrantType(GrantType.AUTHORIZATION_CODE)
-                    .setClientId(properties.getProperty("consumerKey"))
-                    .setClientSecret(properties.getProperty("consumerSecret"))
-                    .setRedirectURI(properties.getProperty("callBackUrl"))
-                    .setCode(authzCode)
-                    .buildBodyMessage();
+                .setClientId(properties.getProperty("consumerKey"))
+                .setClientSecret(properties.getProperty("consumerSecret"))
+                .setRedirectURI(properties.getProperty("callBackUrl"))
+                .setCode(authzCode)
+                .buildBodyMessage();
 
         //create OAuth client that uses custom http client under the hood
         OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
@@ -115,9 +116,17 @@ public  class CommonUtils {
             cookie.setMaxAge(-1);
             cookie.setPath("/");
             response.addCookie(cookie);
+
+            return Optional.of(tokenData);
         } else {
             session.invalidate();
         }
+
+        return Optional.empty();
+    }
+
+    public static String getApiEndpoint(){
+        return SampleContextEventListener.getProperties().getProperty("API_ENDPOINT");
     }
 
     private static Cookie getAppIdCookie(HttpServletRequest request) {
@@ -134,8 +143,8 @@ public  class CommonUtils {
         }
         return appIdCookie;
     }
-    private static void setTokenDataToSession(HttpSession session, TokenData storedTokenData) {
 
+    private static void setTokenDataToSession(HttpSession session, TokenData storedTokenData) {
         session.setAttribute("authenticated", true);
         session.setAttribute("accessToken", storedTokenData.getAccessToken());
         session.setAttribute("idToken", storedTokenData.getIdToken());
