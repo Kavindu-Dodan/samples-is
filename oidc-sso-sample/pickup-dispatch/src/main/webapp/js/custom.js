@@ -264,7 +264,8 @@ async function add_data() {
             swal("Something went wrong", "Cause : " + response_json["error-code"], "error");
         }
     } catch (error) {
-        swal("Something went wrong", "Cause : " + error, "error");
+        swal("Something went wrong", "Cause : " + error + "\n Response : " + response, "error");
+        return;
     }
 
 }
@@ -279,7 +280,12 @@ async function fetch_bookings() {
 
     var response = await get_data(localStorage.getItem("API_ENDPOINT"));
 
-    var json_data = JSON.parse(response);
+    try {
+        var json_data = JSON.parse(response);
+    } catch (error) {
+        swal("Something went wrong", "Cause : " + error + "\n Response : " + response, "error");
+        return;
+    }
 
     // Iterate and append to body
     json_data["bookings"].forEach(element => {
